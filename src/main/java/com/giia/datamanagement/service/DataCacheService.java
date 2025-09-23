@@ -33,8 +33,8 @@ public class DataCacheService {
     public DataCacheService(ProveedorRepository proveedorRepository,
                             ReactiveRedisTemplate<String, Object> redisTemplate,
                             ReactiveRedisConnectionFactory connectionFactory,
-                            @Value("${datacache.redis.key-prefix}") String keyPrefix,
-                            @Value("${datacache.redis.channel}") String channel,
+                            @Value("${datacache.redis.key-prefix.proveedor}") String keyPrefix,
+                            @Value("${datacache.redis.channel.proveedor}") String channel,
                             ProveedorSseService sseService) {
         this.proveedorRepository = proveedorRepository;
         this.redisTemplate = redisTemplate;
@@ -47,18 +47,21 @@ public class DataCacheService {
         this.listenerContainer.receive(channelTopic)
                 .map(Message::getMessage)
                 .cast(String.class)
-                .flatMap(event -> {
-                    try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        JsonNode node = mapper.readTree(event);
-                        if ("PROVEEDOR".equals(node.path("type").asText())) {
-                            return refreshAll();
-                        }
-                        return Mono.empty();
-                    } catch (Exception e) {
-                        log.error("Error parseando mensaje Redis", e);
-                        return Mono.empty();
-                    }
+                .flatMap(event ->
+                        Mono.fromCallable(() -> {
+                                    ObjectMapper mapper = new ObjectMapper();
+                                    return mapper.readTree(event);
+                                })
+                                .flatMap(node -> {
+                                    if ("PROVEEDOR".equals(node.path("type").asText())) {
+                                        return refreshAll();
+                                    }
+                                    return Mono.empty();
+                                })
+                )
+                .onErrorResume(e -> {
+                    log.error("Error parseando mensaje Redis", e);
+                    return Mono.empty();
                 })
                 .subscribe();
     }
@@ -103,7 +106,7 @@ public class DataCacheService {
                         .get(key)
                         .cast(Proveedor.class));
     }
-
+/*
  //solo para pruebas
     public Mono<Proveedor> insertProveedor(Proveedor proveedor) {
         Map<String, String> eventMessage = Map.of("type", "PROVEEDOR"); // objeto JSON
@@ -111,4 +114,6 @@ public class DataCacheService {
                 .flatMap(saved -> redisTemplate.convertAndSend(channelTopic.getTopic(), eventMessage)
                         .thenReturn(saved));
     }
+
+ */
 }

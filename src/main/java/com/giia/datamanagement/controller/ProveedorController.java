@@ -49,10 +49,5 @@ public class ProveedorController {
     /**
      * Insertar un nuevo proveedor en BD y disparar evento
      */
-    @PostMapping("/save")
-    public Mono<ResponseEntity<Proveedor>> createProveedor(@RequestBody Proveedor proveedor) {
-        return dataCacheService.insertProveedor(proveedor)
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.badRequest().build());
-    }
+
 }

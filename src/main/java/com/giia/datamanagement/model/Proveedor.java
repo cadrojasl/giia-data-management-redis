@@ -26,4 +26,9 @@ public class Proveedor {
     @Column("activo")
     private String activo;
 
+    @Column("usuario_prov")
+    private String usuarioProv;
+    @Column("password")
+    private String password;
+
 }

@@ -1,0 +1,46 @@
+# ==============================
+# Configuración del servidor
+# ==============================
+spring:
+  application:
+    name: data-management-cache
+  r2dbc:
+    url: r2dbc:mssql://localhost:1433/GestionInventarioDB
+    username: giia_user
+    password: giia2025
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.SQLServerDialect
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+
+server:
+  port: 8080
+
+# ==============================
+# Configuración personalizada
+# ==============================
+datacache:
+  redis:
+    key-prefix:
+      proveedor: "proveedor:"
+      usuario-proveedor: "usuario-proveedor:"
+    channel:
+      proveedor: "proveedor-updates"
+      usuario-proveedor: "usu-proveedor-updates"
+
+# ==============================
+# Logging
+# ==============================
+logging:
+  level:
+    com.giia.datamanagement: DEBUG
+    org.springframework.data.redis: INFO
+    com.tuempresa.datamanagementcache: DEBUG
