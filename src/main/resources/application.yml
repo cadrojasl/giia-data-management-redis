@@ -19,7 +19,7 @@ spring:
     redis:
       host: giia-redis.redis.cache.windows.net
       port: 6380
-      password: xbum3k1j93TXRMdmScdKTc6jXSkr0MpcGAzCaCe5rKQ=
+      password: ${REDIS_PASS}
 server:
   port: 8080
 
