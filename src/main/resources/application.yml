@@ -5,9 +5,9 @@ spring:
   application:
     name: data-management-cache
   r2dbc:
-    url: r2dbc:mssql://localhost:1433/GestionInventarioDB
-    username: giia_user
-    password: giia2025
+    url: r2dbc:mssql://giia.database.windows.net:1433/giia_db?encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30
+    username: adminsql
+    password: giia2025*
   jpa:
     hibernate:
       ddl-auto: none
@@ -17,10 +17,9 @@ spring:
         dialect: org.hibernate.dialect.SQLServerDialect
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
-      database: 0
-
+      host: giia-redis.redis.cache.windows.net
+      port: 6380
+      password: xbum3k1j93TXRMdmScdKTc6jXSkr0MpcGAzCaCe5rKQ=
 server:
   port: 8080
 

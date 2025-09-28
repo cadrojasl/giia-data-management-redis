@@ -66,23 +66,26 @@ public class DataCacheProvedoresService {
     }
 
     public Mono<Void> refreshAll() {
-        return proveedorRepository.findAll()
-                .flatMap(proveedor -> {
-                    String redisKey = keyPrefix + proveedor.getId();
-                    try {
-                        String json = objectMapper.writeValueAsString(proveedor);
-                        return redisTemplate.opsForValue().set(redisKey, json);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException("Error deserializando Proveedor", e);
-                    }
-                })
+        return redisTemplate.keys(keyPrefix + "*") // 1. Trae todas las keys de proveedores
+                .flatMap(redisTemplate::delete)     // 2. Borra cada key
+                .thenMany(                          // 3. Una vez borrado, vuelve a insertar
+                        proveedorRepository.findAll()
+                                .flatMap(proveedor -> {
+                                    String redisKey = keyPrefix + proveedor.getId();
+                                    try {
+                                        String json = objectMapper.writeValueAsString(proveedor);
+                                        return redisTemplate.opsForValue().set(redisKey, json);
+                                    } catch (JsonProcessingException e) {
+                                        return Mono.error(new RuntimeException("Error serializando proveedor", e));
+                                    }
+                                })
+                )
                 .then()
                 .doOnSuccess(v -> {
-                    // Avisamos al frontend que debe refrescar
                     sseService.publish("REFRESH_PROVEEDORES");
+                    log.debug("Cache de proveedores refrescada desde SQL Server");
                 });
     }
-
     /**
      * Polling de respaldo: cada hora refresca todo
      */

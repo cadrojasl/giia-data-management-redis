@@ -48,39 +48,50 @@ public class DataCacheUsuarioService {
      * Refresca toda la tabla desde SQL Server y la reescribe en Redis
      */
     public void refreshAll() {
-         proveedorRepository.findAll()
-                .flatMap(proveedor -> {
-                    String redisKey = keyPrefixProv + proveedor.getUsuarioProv();
-                    try {
-                        String json = objectMapper.writeValueAsString(proveedor);
-                        return redisTemplate.opsForValue().set(redisKey, json);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException("Error deserializando Proveedor", e);
-                    }
-
-                })
+        redisTemplate.keys(keyPrefixProv + "*")      // 1. Buscar todas las keys de proveedores-login
+                .flatMap(redisTemplate::delete)      // 2. Borrarlas
+                .thenMany(                           // 3. Insertar desde la BD
+                        proveedorRepository.findAll()
+                                .flatMap(proveedor -> {
+                                    String redisKey = keyPrefixProv + proveedor.getUsuarioProv();
+                                    try {
+                                        String json = objectMapper.writeValueAsString(proveedor);
+                                        return redisTemplate.opsForValue().set(redisKey, json);
+                                    } catch (JsonProcessingException e) {
+                                        return reactor.core.publisher.Mono.error(
+                                                new RuntimeException("Error deserializando Proveedor", e)
+                                        );
+                                    }
+                                })
+                )
                 .then()
                 .doOnSuccess(v -> {
-                    // Avisamos al frontend que debe refrescar
                     sseService.publish("REFRESH_LOGIN_PROVEDORES");
+                    log.debug("Cache de login de proveedores refrescada");
                 })
-                 .subscribe();
+                .subscribe();
     }
     public void refreshAllAdmins() {
-        usuarioProveedorRepository.findAll()
-                .flatMap(usuario -> {
-                    String redisKey = keyPrefixUsu + usuario.getUsuario();
-                    try {
-                        String json = objectMapper.writeValueAsString(usuario);
-                        return redisTemplate.opsForValue().set(redisKey, json);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException("Error deserializando Usuario", e);
-                    }
-                })
+        redisTemplate.keys(keyPrefixUsu + "*")       // 1. Buscar todas las keys de usuario-proveedor
+                .flatMap(redisTemplate::delete)      // 2. Borrarlas
+                .thenMany(                           // 3. Insertar desde la BD
+                        usuarioProveedorRepository.findAll()
+                                .flatMap(usuario -> {
+                                    String redisKey = keyPrefixUsu + usuario.getUsuario();
+                                    try {
+                                        String json = objectMapper.writeValueAsString(usuario);
+                                        return redisTemplate.opsForValue().set(redisKey, json);
+                                    } catch (JsonProcessingException e) {
+                                        return reactor.core.publisher.Mono.error(
+                                                new RuntimeException("Error deserializando Usuario", e)
+                                        );
+                                    }
+                                })
+                )
                 .then()
                 .doOnSuccess(v -> {
-                    // Avisamos al frontend que debe refrescar
                     sseService.publish("REFRESH_LOGIN_ADMINS");
+                    log.debug("Cache de login de administradores refrescada");
                 })
                 .subscribe();
     }
